@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日一句學台語</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', "Noto Sans TC", "微軟正黑體", sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* 自訂捲軸樣式 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="bg-green-50 text-gray-800 min-h-screen flex flex-col">
+
+    <header class="bg-green-700 text-white shadow-md p-4">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fas fa-book-open"></i> 每日一句學台語
+            </h1>
+            <div class="flex items-center gap-2 bg-green-800 p-2 rounded-lg text-sm w-full md:w-auto">
+                <i class="fas fa-key text-green-300"></i>
+                <input type="password" id="api-key-input" placeholder="Gemini API Key (選填)" class="bg-transparent border-none outline-none text-white placeholder-green-400 w-full md:w-48">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-green-200 hover:text-white underline whitespace-nowrap" title="取得免費 API Key">申請</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 pb-24">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="w-full sm:w-2/3">
+                <label for="phrase-select" class="block text-sm font-medium text-gray-700 mb-1">🔍 查詢清單：</label>
+                <select id="phrase-select" onchange="selectPhrase(this.value)" class="w-full border-gray-300 rounded-lg p-2 bg-gray-50 focus:ring-green-500 focus:border-green-500">
+                    <!-- 動態載入選項 -->
+                </select>
+            </div>
+            <button onclick="getRandomPhrase()" class="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-6 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-dice"></i> 隨機抽一句
+            </button>
+        </div>
+
+        <div id="content-card" class="bg-white rounded-2xl shadow-lg overflow-hidden fade-in border border-gray-100">
+            <!-- 標題與金句區塊 -->
+            <div class="bg-green-100 p-6 md:p-8 text-center relative">
+                <span class="inline-block bg-green-600 text-white text-xs px-3 py-1 rounded-full font-semibold tracking-wider mb-4">本日金句</span>
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <h2 id="phrase-title" class="text-3xl md:text-5xl font-extrabold text-green-800 tracking-wide"></h2>
+                    <p id="phrase-pinyin" class="text-lg md:text-xl text-green-700 font-medium"></p>
+                    <button onclick="playTTS(document.getElementById('phrase-title').innerText, this)" class="bg-white text-green-700 hover:bg-green-50 border border-green-200 rounded-full w-12 h-12 flex items-center justify-center shadow-sm transition hover:shadow-md mt-2" title="播放發音">
+                        <i class="fas fa-volume-up text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 md:p-8">
+                <!-- 意思與單字解析 -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2 mb-4 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-green-600"></i> 句意與單字
+                    </h3>
+                    <p id="phrase-meaning" class="text-gray-700 text-lg leading-relaxed mb-4"></p>
+                    <ul id="phrase-vocab" class="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <!-- 動態載入單字 -->
+                    </ul>
+                </div>
+
+                <!-- 使用情境 -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-yellow-200 pb-2 mb-4 flex items-center gap-2">
+                        <i class="fas fa-lightbulb text-yellow-500"></i> 什麼時候用？
+                    </h3>
+                    <p id="phrase-scenario-intro" class="text-gray-700 mb-2 font-medium"></p>
+                    <ul id="phrase-scenarios" class="list-disc list-inside text-gray-700 space-y-1 ml-2">
+                        <!-- 動態載入情境 -->
+                    </ul>
+                </div>
+
+                <!-- 對話練習 -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-blue-200 pb-2 mb-4 flex items-center gap-2">
+                        <i class="fas fa-comments text-blue-500"></i> 對話練習
+                    </h3>
+                    <div class="bg-blue-50 p-4 rounded-xl space-y-4">
+                        
+                        <!-- 角色 1 -->
+                        <div class="flex items-start gap-3">
+                            <div id="dialog-avatar1" class="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 shrink-0"></div>
+                            <div class="flex-1 bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-blue-100">
+                                <div class="flex justify-between items-start gap-2">
+                                    <div>
+                                        <p id="dialog-text1" class="text-gray-800"></p>
+                                        <p id="dialog-pinyin1" class="text-sm text-gray-500 mt-1"></p>
+                                    </div>
+                                    <button onclick="playTTS(document.getElementById('dialog-text1').innerText, this)" class="text-blue-500 hover:text-blue-700 bg-blue-50 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 角色 2 -->
+                        <div class="flex items-start gap-3 flex-row-reverse">
+                            <div id="dialog-avatar2" class="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-700 shrink-0"></div>
+                            <div class="flex-1 bg-white p-3 rounded-2xl rounded-tr-none shadow-sm border border-green-100">
+                                <div class="flex justify-between items-start gap-2">
+                                    <button onclick="playTTS(document.getElementById('dialog-text2').innerText, this)" class="text-green-600 hover:text-green-800 bg-green-50 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <div class="text-right">
+                                        <p id="dialog-text2" class="text-gray-800"></p>
+                                        <p id="dialog-pinyin2" class="text-sm text-gray-500 mt-1"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 浮動呼叫按鈕 -->
+    <button onclick="toggleChat()" class="fixed bottom-6 right-6 bg-green-600 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-2xl hover:bg-green-700 transition transform hover:scale-110 z-40 animate-bounce">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- 大型對話 Modal 視窗 -->
+    <div id="chat-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4 transition-opacity duration-300 opacity-0" onclick="handleBackdropClick(event)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[80vh]" id="chat-modal-content">
+            <!-- Modal Header -->
+            <div class="bg-green-700 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fas fa-robot"></i> AI 台語小幫手
+                </h3>
+                <button onclick="toggleChat()" class="text-white hover:text-gray-200 transition p-1">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body (Chat History) -->
+            <div id="chat-history" class="p-4 flex-1 overflow-y-auto bg-gray-50 flex flex-col gap-4">
+                <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-bold shrink-0 text-sm">AI</div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm text-sm text-gray-700 border border-gray-200 rounded-tl-none max-w-[85%]">
+                        你好！有什麼台語不會唸，或是想知道什麼詞的台語怎麼說，都可以問我喔！<br>
+                        <span class="text-xs text-gray-400 mt-1 block">(如果沒有填寫 API Key，我會啟動簡易離線模式回答常見單字)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer (Input) -->
+            <div class="p-4 bg-white border-t border-gray-200 flex gap-2 shrink-0">
+                <input type="text" id="chat-input" class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 text-sm transition" placeholder="例如：「吃飽沒」台語怎麼說？" onkeypress="handleChatKeyPress(event)">
+                <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-700 text-white rounded-full w-10 h-10 flex items-center justify-center transition shadow-md shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入中遮罩 -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center transition-opacity duration-500">
+        <i class="fas fa-spinner fa-spin text-5xl text-green-600 mb-4"></i>
+        <p class="text-gray-600 font-medium">正在從雲端題庫載入資料...</p>
+    </div>
+
+    <script>
+        // 移除原本寫死的 phrasesDatabase，改為空陣列等待載入
+        let phrasesDatabase = [];
+        let currentIndex = 0;
+
+        // 請將下方的網址替換成你部署 Google Apps Script 後得到的「網頁應用程式網址」
+        const GOOGLE_SHEETS_API_URL = "YOUR_GOOGLE_SHEETS_API_URL_HERE"; 
+
+        async function init() {
+            try {
+                // 如果沒有設定 URL，給予提示
+                if (GOOGLE_SHEETS_API_URL === "YOUR_GOOGLE_SHEETS_API_URL_HERE") {
+                     alert("請先將程式碼中的 GOOGLE_SHEETS_API_URL 替換為您的 Google Apps Script 網址！");
+                     document.getElementById('loading-overlay').innerHTML = "<p class='text-red-500'>尚未設定題庫來源</p>";
+                     return;
+                }
+
+                // 從 Google Sheets 抓取資料
+                const response = await fetch(GOOGLE_SHEETS_API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                if(data.error) {
+                    throw new Error(data.error);
+                }
+
+                phrasesDatabase = data;
+
+                // 如果資料庫是空的
+                if(phrasesDatabase.length === 0) {
+                     alert("題庫目前沒有資料，請先在 Google Sheets 中新增資料！");
+                     document.getElementById('loading-overlay').style.display = 'none';
+                     return;
+                }
+
+                // 建立下拉選單
+                const selectElement = document.getElementById('phrase-select');
+                phrasesDatabase.forEach((phrase, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.text = `${index + 1}. ${phrase.title}`;
+                    selectElement.appendChild(option);
+                });
+
+                // 根據日期計算今天的句子
+                const today = new Date();
+                const daysSinceEpoch = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+                currentIndex = daysSinceEpoch % phrasesDatabase.length;
+                
+                selectElement.value = currentIndex;
+                renderPhrase(currentIndex);
+
+                // 載入完成，隱藏遮罩
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }, 500);
+
+            } catch (error) {
+                console.error("載入題庫失敗:", error);
+                document.getElementById('loading-overlay').innerHTML = `
+                    <div class="text-red-500 flex flex-col items-center">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                        <p>無法載入題庫，請檢查網路連線或 API 設定。</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderPhrase(index) {
+            const data = phrasesDatabase[index];
+            const contentCard = document.getElementById('content-card');
+            
+            // 觸發重新載入的動畫
+            contentCard.classList.remove('fade-in');
+            void contentCard.offsetWidth; // trigger reflow
+            contentCard.classList.add('fade-in');
+
+            document.getElementById('phrase-title').innerText = data.title;
+            document.getElementById('phrase-pinyin').innerText = data.pinyin;
+            document.getElementById('phrase-meaning').innerText = data.meaning;
+
+            const vocabContainer = document.getElementById('phrase-vocab');
+            vocabContainer.innerHTML = '';
+            data.vocab.forEach(v => {
+                vocabContainer.innerHTML += `<li><strong class="text-green-700">${v.word}</strong>：${v.desc}</li>`;
+            });
+
+            document.getElementById('phrase-scenario-intro').innerText = data.scenarioIntro;
+            const scenariosContainer = document.getElementById('phrase-scenarios');
+            scenariosContainer.innerHTML = '';
+            data.scenarios.forEach(s => {
+                scenariosContainer.innerHTML += `<li>${s}</li>`;
+            });
+
+            document.getElementById('dialog-avatar1').innerText = data.dialog.role1.avatar;
+            document.getElementById('dialog-text1').innerHTML = data.dialog.role1.text;
+            document.getElementById('dialog-pinyin1').innerText = data.dialog.role1.pinyin;
+
+            document.getElementById('dialog-avatar2').innerText = data.dialog.role2.avatar;
+            document.getElementById('dialog-text2').innerHTML = data.dialog.role2.text;
+            document.getElementById('dialog-pinyin2').innerText = data.dialog.role2.pinyin;
+        }
+
+        function getRandomPhrase() {
+            let newIndex = currentIndex;
+            while(newIndex === currentIndex) {
+                newIndex = Math.floor(Math.random() * phrasesDatabase.length);
+            }
+            currentIndex = newIndex;
+            document.getElementById('phrase-select').value = currentIndex;
+            renderPhrase(currentIndex);
+        }
+
+        function selectPhrase(indexStr) {
+            currentIndex = parseInt(indexStr);
+            renderPhrase(currentIndex);
+        }
+
+        // 聊天室開關
+        function toggleChat() {
+            const modal = document.getElementById('chat-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                // 等待 display flex 生效後再觸發 opacity 動畫
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    document.getElementById('chat-modal-content').classList.remove('scale-95');
+                    document.getElementById('chat-input').focus();
+                }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                document.getElementById('chat-modal-content').classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        // 點擊背景關閉 Modal
+        function handleBackdropClick(event) {
+            if (event.target === document.getElementById('chat-modal')) {
+                toggleChat();
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const history = document.getElementById('chat-history');
+            const isUser = sender === 'user';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex items-start gap-2 ${isUser ? 'flex-row-reverse' : ''}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = `w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 text-sm ${isUser ? 'bg-blue-600 text-white' : 'bg-green-200 text-green-700'}`;
+            avatar.innerText = isUser ? '你' : 'AI';
+
+            const bubble = document.createElement('div');
+            bubble.className = `p-3 rounded-xl shadow-sm text-sm border max-w-[85%] ${isUser ? 'bg-blue-600 text-white border-blue-700 rounded-tr-none' : 'bg-white text-gray-700 border-gray-200 rounded-tl-none'}`;
+            // 簡單處理換行與粗體標籤
+            bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(bubble);
+            history.appendChild(wrapper);
+            
+            history.scrollTop = history.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessage('user', text);
+            input.value = '';
+            
+            // 加上 Loading 訊息
+            const history = document.getElementById('chat-history');
+            const loadingId = 'loading-' + Date.now();
+            
+            const wrapper = document.createElement('div');
+            wrapper.id = loadingId;
+            wrapper.className = `flex items-start gap-2`;
+            wrapper.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-bold shrink-0 text-sm">AI</div>
+                <div class="bg-white p-3 rounded-xl shadow-sm text-sm text-gray-500 border border-gray-200 rounded-tl-none">
+                    <i class="fas fa-ellipsis-h fa-beat"></i> 思考中...
+                </div>
+            `;
+            history.appendChild(wrapper);
+            history.scrollTop = history.scrollHeight;
+
+            const apiKey = document.getElementById('api-key-input').value.trim() || "";
+            let reply = "";
+
+            if (!apiKey) {
+                // 如果沒有提供 API Key，使用簡易離線回覆模式
+                setTimeout(() => {
+                    reply = getFallbackResponse(text);
+                    document.getElementById(loadingId).remove();
+                    appendMessage('ai', reply);
+                }, 800);
+            } else {
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ parts: [{ text: text }] }],
+                        systemInstruction: {
+                            parts: [{ text: "你是一個專業、親切的台語老師。請用繁體中文回答，如果需要台語發音，請加上台羅拼音。回答要簡潔有力，口吻要像朋友一樣親切。" }]
+                        }
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error('API 連線失敗');
+                    const result = await response.json();
+                    reply = result.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，我現在有點腦袋當機，請再問一次！";
+                } catch (error) {
+                    console.error("Gemini API Error:", error);
+                    reply = getFallbackResponse(text);
+                } finally {
+                    document.getElementById(loadingId)?.remove();
+                    appendMessage('ai', reply);
+                }
+            }
+        }
+
+        // 離線簡易字典回覆機制
+        function getFallbackResponse(text) {
+            const lower = text.toLowerCase();
+            if (lower.includes('吃飽沒') || lower.includes('食飽未')) return "「吃飽沒」的台語是：**食飽未 (Tsia̍h-pá--buē)**。這是台灣人最親切的打招呼用語喔！";
+            if (lower.includes('多少錢') || lower.includes('幾塊')) return "「多少錢」的台語是：**偌濟錢 (Guā-tsē tsînn)**。";
+            if (lower.includes('謝謝') || lower.includes('多謝')) return "「謝謝」的台語可以說：**多謝 (To-siā)** 或是 **勞力 (Lóo-la̍t)**。";
+            if (lower.includes('早安') || lower.includes('早')) return "「早安」的台語是：**敖早 (Gâu-tsá)**。";
+            if (lower.includes('你好')) return "「你好」的台語是：**你好 (Lí-hó)**。";
+            return "【簡易離線模式】抱歉，目前沒有連線到 AI 或是 API Key 無效，我目前只能聽懂簡單的單字喔！(例如試著問我：早安、多少錢、謝謝、吃飽沒)";
+        }
+
+        // 將 PCM 16bit 資料轉為 WAV 格式的 Blob 供網頁播放
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1;
+            const byteRate = sampleRate * numChannels * 2;
+            const blockAlign = numChannels * 2;
+            const buffer = new ArrayBuffer(44 + pcmData.byteLength);
+            const view = new DataView(buffer);
+
+            const writeString = (view, offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcmData.byteLength, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // Format (1 = PCM)
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); // Bits per sample
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcmData.byteLength, true);
+
+            let offset = 44;
+            // 寫入音訊資料 (Little Endian)
+            for (let i = 0; i < pcmData.length; i++, offset += 2) {
+                view.setInt16(offset, pcmData[i], true);
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        async function playTTS(text, btnElement) {
+            // 先過濾掉 HTML 標籤，保留純文字給語音 API
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = text;
+            const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+            const originalIcon = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btnElement.disabled = true;
+
+            try {
+                const apiKey = document.getElementById('api-key-input').value.trim() || "";
+                if (!apiKey) {
+                    alert("⚠️ 語音功能需要 API Key。請在頁面上方輸入您的 Gemini API Key。");
+                    return;
+                }
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: `請用親切道地的台語發音唸出這句話：${cleanText}` }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('語音 API 請求失敗');
+
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    // 解析 sampleRate (通常為 24000)
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+
+                    // Base64 轉成二進位陣列
+                    const binaryString = atob(audioData);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    // 轉為 PCM 16bit 格式並打包成 WAV
+                    const pcm16 = new Int16Array(bytes.buffer);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+
+                    // 播放音訊
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    throw new Error('未取得正確的音訊格式');
+                }
+            } catch (error) {
+                console.error("Audio play error:", error);
+                alert("語音發音暫時無法使用，請確認您的 API Key 是否正確。");
+            } finally {
+                // 恢復按鈕圖示
+                btnElement.innerHTML = originalIcon;
+                btnElement.disabled = false;
+            }
+        }
+
+        // 初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
