@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feifei | Senior Engineer ➔ Aspiring TPM</title>
+    
+    <!-- Google Fonts: Using Noto Serif TC for elegant headings and Noto Sans TC for readable body text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Config for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        serif: ['"Noto Serif TC"', 'serif'],
+                    },
+                    colors: {
+                        // Adjusted to match the elegant, warm gold/brown tones from the reference
+                        brand: {
+                            50: '#fcfbf9',
+                            100: '#f5f0e6',
+                            200: '#e6d9c3',
+                            300: '#d4bf9d',
+                            400: '#bca072',
+                            500: '#a3824f', // Main elegant gold/brown
+                            600: '#8c6b3e',
+                            700: '#735431',
+                            800: '#5c4329',
+                            900: '#4a3622',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS for specific elements -->
+    <style>
+        body {
+            background-color: #fcfbf9;
+            color: #333333;
+        }
+
+        /* Elegant radial gradient background similar to reference */
+        .hero-gradient {
+            background: radial-gradient(circle at center, #fffdfa 0%, #f5f0e6 100%);
+        }
+
+        /* Glowing effect for the profile picture */
+        .profile-glow {
+            box-shadow: 0 0 40px 10px rgba(188, 160, 114, 0.2);
+            transition: all 0.5s ease;
+        }
+        
+        .profile-glow:hover {
+            box-shadow: 0 0 50px 15px rgba(188, 160, 114, 0.3);
+            transform: scale(1.02);
+        }
+
+        /* Timeline Styles */
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 1rem;
+            height: 100%;
+            width: 2px;
+            background: #e6d9c3;
+        }
+        
+        @media (min-width: 768px) {
+            .timeline-container::before {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .timeline-item:nth-child(odd) .timeline-content {
+                text-align: right;
+                padding-right: 3rem;
+                padding-left: 0;
+            }
+            .timeline-item:nth-child(even) .timeline-content {
+                text-align: left;
+                padding-left: 3rem;
+                padding-right: 0;
+            }
+            .timeline-item:nth-child(odd) .timeline-dot {
+                right: -10px;
+                left: auto;
+            }
+            .timeline-item:nth-child(even) .timeline-dot {
+                left: -10px;
+                right: auto;
+            }
+            .timeline-item:nth-child(odd) .timeline-date {
+                right: -150px;
+                left: auto;
+                text-align: left;
+            }
+            .timeline-item:nth-child(even) .timeline-date {
+                left: -150px;
+                right: auto;
+                text-align: right;
+            }
+        }
+
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-brand-200 selection:text-brand-900">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-[#fcfbf9]/90 backdrop-blur-md z-50 transition-all duration-300 border-b border-brand-100/50" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo area with icon -->
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-400 text-white rounded-lg flex items-center justify-center font-serif font-bold text-xl">
+                        F
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xl font-bold text-gray-900 font-serif tracking-wide">Feifei</span>
+                        <span class="text-xs text-brand-600">Engineer & Yogi</span>
+                    </div>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-6 lg:space-x-8">
+                    <a href="#about" class="text-gray-700 hover:text-brand-600 font-medium transition-colors text-sm lg:text-base">關於我</a>
+                    <a href="#expertise" class="text-gray-700 hover:text-brand-600 font-medium transition-colors text-sm lg:text-base">核心專長</a>
+                    <a href="#experience" class="text-gray-700 hover:text-brand-600 font-medium transition-colors text-sm lg:text-base">經歷時間軸</a>
+                    
+                    <!-- Right side buttons similar to reference -->
+                    <div class="flex items-center space-x-3 ml-4 border-l border-gray-200 pl-6">
+                        <a href="https://linkedin.com" target="_blank" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center text-gray-600 transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#contact" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-paper-plane text-sm"></i> 聯繫洽談
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-700 hover:text-brand-600 focus:outline-none p-2">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-xl absolute w-full border-t border-gray-100">
+            <div class="px-4 py-6 space-y-4">
+                <a href="#about" class="block text-base font-medium text-gray-700 hover:text-brand-600">關於我</a>
+                <a href="#expertise" class="block text-base font-medium text-gray-700 hover:text-brand-600">核心專長</a>
+                <a href="#experience" class="block text-base font-medium text-gray-700 hover:text-brand-600">經歷時間軸</a>
+                <div class="pt-4 border-t border-gray-100 flex gap-4">
+                     <a href="#contact" class="flex-1 text-center bg-brand-600 text-white px-4 py-3 rounded-lg font-medium">聯繫洽談</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-gradient pt-32 pb-20 md:pt-40 md:pb-32 px-4 sm:px-6 lg:px-8 min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+        
+        <div class="max-w-5xl mx-auto text-center w-full relative z-10">
+            
+            <!-- Profile Image Area -->
+            <div class="mb-10 fade-in-up">
+                <div class="relative w-48 h-48 md:w-64 md:h-64 mx-auto rounded-full p-1 bg-gradient-to-br from-brand-200 to-brand-100 profile-glow">
+                    <img src="https://duk.tw/T3Cfby.jpg" alt="Feifei" class="w-full h-full object-cover rounded-full border-4 border-white">
+                </div>
+            </div>
+
+            <!-- Role Tag -->
+            <div class="fade-in-up mb-8" style="transition-delay: 100ms;">
+                <span class="inline-flex items-center gap-2 py-2 px-6 rounded-full bg-white border border-brand-200 text-brand-800 text-sm md:text-base font-medium shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+                    Senior Engineer ➔ Aspiring TPM | Aerial & Yoga Instructor
+                </span>
+            </div>
+
+            <!-- Main Headline -->
+            <div class="fade-in-up mb-8" style="transition-delay: 200ms;">
+                <h1 class="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-gray-900 leading-tight tracking-tight">
+                    具備 <span class="text-brand-500">12+</span> 年跨界歷練<br class="hidden md:block">
+                    <span class="text-gray-800">以邏輯架構，以同理溝通</span>
+                </h1>
+            </div>
+
+            <!-- Intro Quote -->
+            <div class="fade-in-up" style="transition-delay: 300ms;">
+                <p class="text-xl md:text-2xl text-gray-600 font-serif italic max-w-3xl mx-auto leading-relaxed">
+                    「以 12 年技術底蘊架構邏輯，以教學與跨界經驗引導溝通協調。」
+                </p>
+            </div>
+        </div>
+
+        <!-- Decorative background elements -->
+        <div class="absolute top-1/4 -left-64 w-[500px] h-[500px] bg-brand-100/50 rounded-full blur-3xl -z-10 mix-blend-multiply"></div>
+        <div class="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-brand-50 rounded-full blur-3xl -z-10 mix-blend-multiply"></div>
+    </header>
+
+    <!-- About Section -->
+    <section id="about" class="py-24 bg-white relative">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-16 fade-in-up">
+                <span class="text-brand-500 font-semibold tracking-widest text-sm mb-3 block uppercase">About Me</span>
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900">職涯簡介</h2>
+            </div>
+            
+            <div class="fade-in-up bg-[#fcfbf9] rounded-3xl p-8 md:p-12 shadow-sm border border-brand-100 relative overflow-hidden">
+                <!-- Quote mark decorative -->
+                <i class="fas fa-quote-left absolute top-8 left-8 text-6xl text-brand-100 opacity-50"></i>
+                
+                <div class="space-y-6 text-lg text-gray-700 leading-relaxed relative z-10 font-sans">
+                    <p>
+                        我是 <span class="text-brand-700 font-bold">feifei</span>。擁有 <strong>12 年軟體開發資歷</strong>，曾橫跨製造業、社群平台與博弈產業，專精於 PHP（Laravel, CodeIgniter, Drupal, Smarty）、MySQL 與前端核心技術。曾於華通電腦擔任資料庫管理師，並在智邦生活館、funpodium、勝海等團隊深耕高併發平台維護與全端系統開發。
+                    </p>
+                    <p>
+                        在工程職涯中，我最享受的不只是寫出好程式，更是<strong class="text-brand-700 font-bold">「將需求轉化為高價值產品」</strong>的過程——曾與 PM、設計師從 0 到 1 打造非營利組織（NPO）平台，負責自定義排版模組與完整生命週期管理。目前正全力轉向 <strong class="text-brand-700 font-bold">專案管理（Project Management / TPM）</strong> 領域，期望將深厚的技術理解力轉化為跨團隊溝通的橋樑，協助團隊精準掌控時程、排解痛點並推進目標。
+                    </p>
+                    <div class="mt-8 p-6 bg-white rounded-2xl border-l-4 border-brand-400 shadow-sm flex gap-4 items-start">
+                        <div class="w-12 h-12 bg-brand-50 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-spa text-brand-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 mb-2">跨界修煉：科技與身心靈的平衡</h4>
+                            <p class="text-base text-gray-600">
+                                在科技業之外，我自 2018 年起成為專業空中瑜珈與瑜珈教學者，持有空中瑜珈、哈達瑜珈、陰瑜珈、瑜珈輪及空中環等完整專業師資認證。多年來與多元學員、教室場館溝通協調課表排程的實務歷練，鍛鍊了我敏銳的同理心、控場應變能力與時間管理敏捷度。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Expertise Section -->
+    <section id="expertise" class="py-24 bg-[#fcfbf9]">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20 fade-in-up">
+                <span class="text-brand-500 font-semibold tracking-widest text-sm mb-3 block uppercase">Core Strengths</span>
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900">核心優勢與專長</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 md:gap-10">
+                <!-- Skill 1 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-brand-100 fade-in-up group hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 text-3xl mb-8 group-hover:bg-brand-500 group-hover:text-white transition-colors duration-300">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 font-serif">技術理解與系統架構</h3>
+                    <ul class="space-y-4 text-gray-600">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span class="leading-relaxed"><strong>PHP 全端開發：</strong><br>Laravel / CodeIgniter / Drupal / Smarty</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>JavaScript / jQuery</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>MySQL 資料庫管理</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>響應式前端 (HTML5 / CSS3)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Skill 2 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-brand-100 fade-in-up group hover:-translate-y-2" style="transition-delay: 100ms;">
+                    <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 text-3xl mb-8 group-hover:bg-brand-500 group-hover:text-white transition-colors duration-300">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 font-serif">跨職能推進與專案管理</h3>
+                    <ul class="space-y-4 text-gray-600">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>從 0 到 1 產品開發</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>需求收斂與拆解</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>跨部門溝通 (工程 / 設計 / 營運)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>時程掌控與風險控制</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Skill 3 -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-brand-100 fade-in-up group hover:-translate-y-2" style="transition-delay: 200ms;">
+                    <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 text-3xl mb-8 group-hover:bg-brand-500 group-hover:text-white transition-colors duration-300">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 font-serif">教學與溝通協調</h3>
+                    <ul class="space-y-4 text-gray-600">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>自 2018 年起累積豐富教學經驗</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>高情商溝通與同理心</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>學員需求引導與突發狀況應變</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-brand-400 mt-1.5 mr-3 text-xs"></i>
+                            <span>多方場館商務對接與排程管理</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Timeline -->
+    <section id="experience" class="py-24 bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20 fade-in-up">
+                <span class="text-brand-500 font-semibold tracking-widest text-sm mb-3 block uppercase">Career Timeline</span>
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">職涯時間軸</h2>
+                <p class="text-gray-500 font-serif">12 年技術深耕 × 跨界教學實務</p>
+            </div>
+
+            <div class="relative timeline-container py-8">
+                
+                <!-- Timeline Item 1: Future/Current -->
+                <div class="timeline-item relative mb-16 md:mb-24 w-full md:w-1/2 ml-auto pl-8 md:pl-0 fade-in-up">
+                    <div class="hidden md:block absolute top-1/2 -translate-y-1/2 timeline-date w-[150px] text-brand-600 font-serif font-bold text-xl pr-8">現在 ~ 未來</div>
+                    <div class="timeline-dot absolute top-1/2 -translate-y-1/2 left-0 w-5 h-5 bg-white border-4 border-brand-500 rounded-full shadow-md z-10 -ml-[10px] md:ml-0"></div>
+                    <div class="timeline-content bg-brand-50 p-8 rounded-2xl border border-brand-100 hover:shadow-lg transition-all duration-300 relative">
+                        <div class="md:hidden text-brand-600 font-serif font-bold mb-3">現在 ~ 未來</div>
+                        <span class="inline-block py-1 px-3 rounded-md bg-white text-brand-600 text-xs font-bold tracking-wider mb-4 border border-brand-100">TARGET ROLE</span>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-1 font-serif">Aspiring TPM</h3>
+                        <h4 class="text-brand-600 font-medium mb-4">技術專案經理</h4>
+                        <p class="text-gray-600 leading-relaxed">
+                            全力轉向專案管理領域。運用 12 年技術背景優勢，做為工程與非工程團隊間的溝通橋樑。專注於需求解析、時程控管、痛點排解，協助團隊將需求精準轉化為高價值產品。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Timeline Item 2: Yoga -->
+                <div class="timeline-item relative mb-16 md:mb-24 w-full md:w-1/2 pr-8 md:pr-0 fade-in-up">
+                    <div class="hidden md:block absolute top-1/2 -translate-y-1/2 timeline-date w-[150px] text-gray-800 font-serif font-bold text-xl pl-8">2018 - 至今</div>
+                    <div class="timeline-dot absolute top-1/2 -translate-y-1/2 left-0 w-5 h-5 bg-white border-4 border-brand-400 rounded-full shadow-md z-10 -ml-[10px] md:ml-0"></div>
+                    <div class="timeline-content bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+                        <div class="md:hidden text-gray-800 font-serif font-bold mb-3">2018 - 至今</div>
+                        <span class="inline-block py-1 px-3 rounded-md bg-gray-100 text-gray-600 text-xs font-bold tracking-wider mb-4">CROSS-FIELD</span>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-1 font-serif">空中瑜珈與瑜珈指導師</h3>
+                        <h4 class="text-brand-500 font-medium mb-4"><i class="fas fa-leaf mr-2 text-sm"></i>專業教學與跨界溝通</h4>
+                        <p class="text-gray-600 leading-relaxed mb-4">
+                            持有空中瑜珈、哈達、陰瑜珈、瑜珈輪及空中環等多項師資認證。
+                        </p>
+                        <ul class="text-gray-600 text-sm space-y-2">
+                            <li class="flex items-center"><span class="w-1.5 h-1.5 bg-brand-300 rounded-full mr-2"></span>培養敏銳同理心與高情商溝通</li>
+                            <li class="flex items-center"><span class="w-1.5 h-1.5 bg-brand-300 rounded-full mr-2"></span>鍛鍊課堂控場與突發狀況應變能力</li>
+                            <li class="flex items-center"><span class="w-1.5 h-1.5 bg-brand-300 rounded-full mr-2"></span>與多方場館進行商務對接與課表排程</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Timeline Item 3: Senior Dev Experiences -->
+                <div class="timeline-item relative mb-16 md:mb-24 w-full md:w-1/2 ml-auto pl-8 md:pl-0 fade-in-up">
+                    <div class="hidden md:block absolute top-1/2 -translate-y-1/2 timeline-date w-[150px] text-gray-500 font-serif font-bold text-xl pr-8">過去 12 年</div>
+                    <div class="timeline-dot absolute top-1/2 -translate-y-1/2 left-0 w-5 h-5 bg-white border-4 border-gray-300 rounded-full shadow-md z-10 -ml-[10px] md:ml-0"></div>
+                    <div class="timeline-content bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+                        <div class="md:hidden text-gray-500 font-serif font-bold mb-3">過去 12 年</div>
+                        <span class="inline-block py-1 px-3 rounded-md bg-gray-100 text-gray-600 text-xs font-bold tracking-wider mb-4">ENGINEERING</span>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-1 font-serif">Senior Engineer</h3>
+                        <h4 class="text-gray-500 font-medium mb-6">高併發平台與全端系統開發</h4>
+                        
+                        <div class="space-y-6">
+                            <div class="relative pl-4 border-l-2 border-brand-200">
+                                <h5 class="font-bold text-gray-800 text-lg">智邦生活館 / funpodium / 勝海</h5>
+                                <p class="text-gray-600 text-sm mt-2 leading-relaxed">深耕高併發平台維護、社群與博弈產業全端系統開發。曾與 PM、設計師合作，從 0 到 1 打造 NPO 平台，負責自定義排版模組與生命週期管理。</p>
+                            </div>
+                            <div class="relative pl-4 border-l-2 border-gray-200">
+                                <h5 class="font-bold text-gray-800 text-lg">華通電腦</h5>
+                                <p class="text-gray-600 text-sm mt-2 leading-relaxed">擔任資料庫管理師 (DBA)，負責系統維護與效能優化，奠定扎實的資料庫架構與管理基礎。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-[#2a2520] text-white py-16 border-t-[6px] border-brand-600 relative overflow-hidden">
+        <!-- Background subtle pattern -->
+        <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#d4bf9d 1px, transparent 1px); background-size: 24px 24px;"></div>
+        
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h2 class="text-3xl font-serif font-bold mb-6 text-brand-100">聯繫洽談</h2>
+            <p class="text-gray-300 mb-10 max-w-2xl mx-auto text-lg leading-relaxed font-light">
+                尋求將技術語言轉化為商業價值的橋樑？<br class="hidden sm:block">或者需要討論專案管理的可能性？歡迎與我聯繫。
+            </p>
+            <div class="flex justify-center gap-6 mb-12">
+                <a href="mailto:your.email@example.com" class="group flex items-center justify-center w-14 h-14 bg-white/10 rounded-full hover:bg-brand-500 transition-all duration-300">
+                    <i class="fas fa-envelope text-xl text-brand-200 group-hover:text-white transition-colors"></i>
+                </a>
+                <a href="https://linkedin.com" target="_blank" class="group flex items-center justify-center w-14 h-14 bg-white/10 rounded-full hover:bg-brand-500 transition-all duration-300">
+                    <i class="fab fa-linkedin-in text-xl text-brand-200 group-hover:text-white transition-colors"></i>
+                </a>
+            </div>
+            
+            <div class="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+                <p>&copy; 2024 Feifei. All rights reserved.</p>
+                <p class="flex items-center gap-2">
+                    <i class="fas fa-code text-brand-500/50"></i> Crafted with Technical Logic & Yogi Balance <i class="fas fa-om text-brand-500/50"></i>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu Toggle
+            const btn = document.getElementById('mobile-menu-btn');
+            const menu = document.getElementById('mobile-menu');
+            const icon = btn.querySelector('i');
+
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+                if(menu.classList.contains('hidden')){
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                } else {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                }
+            });
+
+            // Close mobile menu on link click
+            const mobileLinks = menu.querySelectorAll('a');
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    menu.classList.add('hidden');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                });
+            });
+
+            // Navbar style on scroll
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    navbar.classList.add('shadow-md');
+                    navbar.classList.remove('border-b', 'border-brand-100/50');
+                } else {
+                    navbar.classList.remove('shadow-md');
+                    navbar.classList.add('border-b', 'border-brand-100/50');
+                }
+            });
+
+            // Intersection Observer for scroll animations (fade-in-up)
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target); // Only animate once
+                    }
+                });
+            }, observerOptions);
+
+            const fadeElements = document.querySelectorAll('.fade-in-up');
+            fadeElements.forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
