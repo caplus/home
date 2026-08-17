@@ -13,6 +13,13 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .pop-anim { animation: pop 0.3s ease-in-out; }
+        .tab-active { border-bottom-color: #047857; color: #047857; font-weight: bold; }
         /* 自訂捲軸樣式 */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
@@ -23,111 +30,146 @@
 <body class="bg-green-50 text-gray-800 min-h-screen flex flex-col">
 
     <header class="bg-green-700 text-white shadow-md p-4">
-        <div class="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <i class="fas fa-book-open"></i> 每日一句學台語
-            </h1>
-            <div class="flex items-center gap-2 bg-green-800 p-2 rounded-lg text-sm w-full md:w-auto">
-                <i class="fas fa-key text-green-300"></i>
-                <input type="password" id="api-key-input" placeholder="Gemini API Key (選填)" class="bg-transparent border-none outline-none text-white placeholder-green-400 w-full md:w-48">
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-green-200 hover:text-white underline whitespace-nowrap" title="取得免費 API Key">申請</a>
+        <div class="max-w-4xl mx-auto flex flex-col gap-2">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <i class="fas fa-book-open"></i> 每日一句學台語
+                </h1>
+                <div class="flex gap-4 items-center w-full md:w-auto">
+                    <button onclick="toggleFavorites()" class="text-white hover:text-yellow-300 transition flex items-center gap-1">
+                        <i class="fas fa-heart"></i> <span class="hidden sm:inline">我的收藏</span>
+                    </button>
+                    <div class="flex items-center gap-2 bg-green-800 p-2 rounded-lg text-sm w-full md:w-auto flex-1">
+                        <i class="fas fa-key text-green-300"></i>
+                        <input type="password" id="api-key-input" placeholder="Gemini API Key (選填)" class="bg-transparent border-none outline-none text-white placeholder-green-400 w-full md:w-48">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-green-200 hover:text-white underline whitespace-nowrap" title="取得免費 API Key">申請</a>
+                    </div>
+                </div>
             </div>
+            <!-- 進度條 -->
+            <div class="w-full bg-green-800 rounded-full h-2 mt-2 overflow-hidden relative" title="題庫學習進度">
+                <div id="progress-bar" class="bg-yellow-400 h-2 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <div class="text-right text-xs text-green-200 mt-1" id="progress-text">學習進度：0 / 0</div>
         </div>
     </header>
 
-    <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 pb-24">
+    <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 pb-24 relative">
         
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <div class="w-full sm:w-2/3">
-                <label for="phrase-select" class="block text-sm font-medium text-gray-700 mb-1">🔍 查詢清單：</label>
-                <select id="phrase-select" onchange="selectPhrase(this.value)" class="w-full border-gray-300 rounded-lg p-2 bg-gray-50 focus:ring-green-500 focus:border-green-500">
-                    <!-- 動態載入選項 -->
-                </select>
-            </div>
-            <button onclick="getRandomPhrase()" class="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-6 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
-                <i class="fas fa-dice"></i> 隨機抽一句
+        <div class="flex border-b border-gray-200 mb-6">
+            <button onclick="switchTab('learn')" id="tab-learn" class="tab-active flex-1 py-3 px-4 text-center border-b-4 hover:bg-gray-50 transition font-medium text-gray-500">
+                <i class="fas fa-book-reader mr-2"></i>情境學習
+            </button>
+            <button onclick="switchTab('quiz')" id="tab-quiz" class="flex-1 py-3 px-4 text-center border-b-4 border-transparent hover:bg-gray-50 transition font-medium text-gray-500">
+                <i class="fas fa-gamepad mr-2"></i>隨堂小測驗
             </button>
         </div>
 
-        <div id="content-card" class="bg-white rounded-2xl shadow-lg overflow-hidden fade-in border border-gray-100">
-            <!-- 標題與金句區塊 -->
-            <div class="bg-green-100 p-6 md:p-8 text-center relative">
-                <span class="inline-block bg-green-600 text-white text-xs px-3 py-1 rounded-full font-semibold tracking-wider mb-4">本日金句</span>
-                <div class="flex flex-col items-center justify-center gap-4">
-                    <h2 id="phrase-title" class="text-3xl md:text-5xl font-extrabold text-green-800 tracking-wide"></h2>
-                    <p id="phrase-pinyin" class="text-lg md:text-xl text-green-700 font-medium"></p>
-                    <button onclick="playTTS(document.getElementById('phrase-title').innerText, this)" class="bg-white text-green-700 hover:bg-green-50 border border-green-200 rounded-full w-12 h-12 flex items-center justify-center shadow-sm transition hover:shadow-md mt-2" title="播放發音">
-                        <i class="fas fa-volume-up text-xl"></i>
-                    </button>
+        <!-- 學習區塊 (原有的主畫面) -->
+        <div id="view-learn">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="w-full sm:w-2/3">
+                    <label for="phrase-select" class="block text-sm font-medium text-gray-700 mb-1">🔍 查詢清單：</label>
+                    <select id="phrase-select" onchange="selectPhrase(this.value)" class="w-full border-gray-300 rounded-lg p-2 bg-gray-50 focus:ring-green-500 focus:border-green-500">
+                        <!-- 動態載入選項 -->
+                    </select>
                 </div>
+                <button onclick="getRandomPhrase()" class="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-6 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+                    <i class="fas fa-dice"></i> 隨機抽一句
+                </button>
             </div>
 
-            <div class="p-6 md:p-8">
-                <!-- 意思與單字解析 -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-green-200 pb-2 mb-4 flex items-center gap-2">
-                        <i class="fas fa-info-circle text-green-600"></i> 句意與單字
-                    </h3>
-                    <p id="phrase-meaning" class="text-gray-700 text-lg leading-relaxed mb-4"></p>
-                    <ul id="phrase-vocab" class="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                        <!-- 動態載入單字 -->
-                    </ul>
-                </div>
-
-                <!-- 使用情境 -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-yellow-200 pb-2 mb-4 flex items-center gap-2">
-                        <i class="fas fa-lightbulb text-yellow-500"></i> 什麼時候用？
-                    </h3>
-                    <p id="phrase-scenario-intro" class="text-gray-700 mb-2 font-medium"></p>
-                    <ul id="phrase-scenarios" class="list-disc list-inside text-gray-700 space-y-1 ml-2">
-                        <!-- 動態載入情境 -->
-                    </ul>
-                </div>
-
-                <!-- 對話練習 -->
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800 border-b-2 border-blue-200 pb-2 mb-4 flex items-center gap-2">
-                        <i class="fas fa-comments text-blue-500"></i> 對話練習
-                    </h3>
-                    <div class="bg-blue-50 p-4 rounded-xl space-y-4">
-                        
-                        <!-- 角色 1 -->
-                        <div class="flex items-start gap-3">
-                            <div id="dialog-avatar1" class="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 shrink-0"></div>
-                            <div class="flex-1 bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-blue-100">
-                                <div class="flex justify-between items-start gap-2">
-                                    <div>
-                                        <p id="dialog-text1" class="text-gray-800"></p>
-                                        <p id="dialog-pinyin1" class="text-sm text-gray-500 mt-1"></p>
-                                    </div>
-                                    <button onclick="playTTS(document.getElementById('dialog-text1').innerText, this)" class="text-blue-500 hover:text-blue-700 bg-blue-50 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                                        <i class="fas fa-volume-up"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 角色 2 -->
-                        <div class="flex items-start gap-3 flex-row-reverse">
-                            <div id="dialog-avatar2" class="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-700 shrink-0"></div>
-                            <div class="flex-1 bg-white p-3 rounded-2xl rounded-tr-none shadow-sm border border-green-100">
-                                <div class="flex justify-between items-start gap-2">
-                                    <button onclick="playTTS(document.getElementById('dialog-text2').innerText, this)" class="text-green-600 hover:text-green-800 bg-green-50 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                                        <i class="fas fa-volume-up"></i>
-                                    </button>
-                                    <div class="text-right">
-                                        <p id="dialog-text2" class="text-gray-800"></p>
-                                        <p id="dialog-pinyin2" class="text-sm text-gray-500 mt-1"></p>
+            <div id="content-card" class="bg-white rounded-2xl shadow-lg overflow-hidden fade-in border border-gray-100">
+                <!-- 標題與金句區塊 -->
+                <div class="bg-green-100 p-6 md:p-8 text-center relative">
+                    <span class="inline-block bg-green-600 text-white text-xs px-3 py-1 rounded-full font-semibold tracking-wider mb-4">本日金句</span>
+                    <!-- 收藏按鈕 -->
+                    <button onclick="toggleCurrentFavorite(this)" id="fav-btn" class="absolute top-6 right-6 text-2xl text-gray-400 hover:text-red-500 transition duration-300 drop-shadow-sm" title="加入收藏">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <h2 id="phrase-title" class="text-3xl md:text-5xl font-extrabold text-green-800 tracking-wide"></h2>
+                        <p id="phrase-pinyin" class="text-lg md:text-xl text-green-700 font-medium"></p>
+                            <div class="flex items-start gap-3 flex-row-reverse">
+                                <div id="dialog-avatar2" class="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-700 shrink-0"></div>
+                                <div class="flex-1 bg-white p-3 rounded-2xl rounded-tr-none shadow-sm border border-green-100">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <button onclick="playTTS(document.getElementById('dialog-text2').innerText, this)" class="text-green-600 hover:text-green-800 bg-green-50 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                                            <i class="fas fa-volume-up"></i>
+                                        </button>
+                                        <div class="text-right">
+                                            <p id="dialog-text2" class="text-gray-800"></p>
+                                            <p id="dialog-pinyin2" class="text-sm text-gray-500 mt-1"></p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- 測驗區塊 -->
+        <div id="view-quiz" class="hidden">
+            <div class="bg-white rounded-2xl shadow-lg p-6 md:p-10 border border-gray-100 text-center max-w-2xl mx-auto">
+                <div id="quiz-setup">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">準備好挑戰了嗎？</h3>
+                    <p class="text-gray-600 mb-8">從目前的題庫中隨機抽出 5 題，測試你對台語俗諺的了解程度！</p>
+                    <button onclick="startQuiz()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 text-lg">
+                        <i class="fas fa-play mr-2"></i> 開始測驗
+                    </button>
+                </div>
+                
+                <div id="quiz-active" class="hidden fade-in">
+                    <div class="flex justify-between text-sm text-gray-500 mb-6 font-bold">
+                        <span id="quiz-progress-text">題數：1 / 5</span>
+                        <span id="quiz-score-text" class="text-green-600">目前得分：0</span>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-6 rounded-xl mb-8 border border-gray-200">
+                        <p class="text-sm text-gray-500 mb-2 font-bold" id="quiz-question-type">請問以下這句台語的華語意思是？</p>
+                        <h4 class="text-2xl font-extrabold text-green-800 tracking-wide mb-2" id="quiz-question-text">題目文字</h4>
+                        <button id="quiz-listen-btn" onclick="playTTS(currentQuizPhrase.title, this)" class="bg-white text-green-700 hover:bg-green-50 border border-green-200 rounded-full px-4 py-2 text-sm shadow-sm transition hover:shadow-md mx-auto hidden items-center gap-2">
+                            <i class="fas fa-volume-up"></i> 聽聽看
+                        </button>
+                    </div>
+
+                    <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- 選項按鈕會動態生成 -->
+                    </div>
+                </div>
+
+                <div id="quiz-result" class="hidden fade-in">
+                    <i class="fas fa-medal text-6xl text-yellow-400 mb-4"></i>
+                    <h3 class="text-3xl font-bold text-gray-800 mb-2">測驗結束！</h3>
+                    <p class="text-xl text-gray-600 mb-8" id="quiz-final-score">你的分數是：<span class="font-bold text-green-600">100</span> 分</p>
+                    <button onclick="document.getElementById('view-quiz').innerHTML = originalQuizHTML; startQuiz();" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow-md transition text-lg mr-2">
+                        再玩一次
+                    </button>
+                    <button onclick="switchTab('learn')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full shadow-sm transition text-lg">
+                        回到學習
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收藏清單側邊欄 -->
+        <div id="favorites-sidebar" class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col border-l border-gray-200">
+            <div class="p-4 bg-green-700 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fas fa-heart text-red-400 mr-2"></i>我的收藏</h3>
+                <button onclick="toggleFavorites()" class="text-white hover:text-gray-200 p-1"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="favorites-list" class="p-4 flex-1 overflow-y-auto space-y-3 bg-gray-50">
+                <!-- 收藏項目會動態加入這裡 -->
+                <p class="text-gray-500 text-center text-sm mt-10" id="fav-empty-state">目前還沒有收藏任何句子喔！<br>趕快點擊愛心加入吧。</p>
+            </div>
+        </div>
+        <!-- 收藏清單背景遮罩 -->
+        <div id="favorites-backdrop" onclick="toggleFavorites()" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity duration-300 opacity-0"></div>
+
     </main>
 
     <!-- 浮動呼叫按鈕 -->
@@ -176,9 +218,13 @@
     </div>
 
     <script>
-        // 移除原本寫死的 phrasesDatabase，改為空陣列等待載入
         let phrasesDatabase = [];
         let currentIndex = 0;
+        let learnedPhrases = new Set(); // 記錄看過的題目
+        let favoriteIndexes = []; // 儲存收藏題目的 index
+        
+        // 保存原始的測驗 HTML 結構以便重置
+        let originalQuizHTML = "";
 
         // 請將下方的網址替換成你部署 Google Apps Script 後得到的「網頁應用程式網址」
         const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyyJZEvRy5XhkSm_HiKfi65iEK_x7lIhlIw5m1ybShJ6PBipUA-_7KlRiqPvbCKiQjW/exec"; 
@@ -224,6 +270,10 @@
                 const daysSinceEpoch = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
                 currentIndex = daysSinceEpoch % phrasesDatabase.length;
                 
+                // 載入本地儲存的學習紀錄與收藏
+                loadLocalData();
+                originalQuizHTML = document.getElementById('view-quiz').innerHTML;
+
                 selectElement.value = currentIndex;
                 renderPhrase(currentIndex);
 
@@ -245,10 +295,45 @@
             }
         }
 
+        function loadLocalData() {
+            try {
+                const savedLearned = localStorage.getItem('tw_learnedPhrases');
+                if (savedLearned) learnedPhrases = new Set(JSON.parse(savedLearned));
+                
+                const savedFavs = localStorage.getItem('tw_favoriteIndexes');
+                if (savedFavs) favoriteIndexes = JSON.parse(savedFavs);
+                
+                updateProgressBar();
+                renderFavoritesList();
+            } catch(e) { console.error("無法讀取本地記錄", e); }
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('tw_learnedPhrases', JSON.stringify(Array.from(learnedPhrases)));
+            localStorage.setItem('tw_favoriteIndexes', JSON.stringify(favoriteIndexes));
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const total = phrasesDatabase.length;
+            if (total === 0) return;
+            const learned = learnedPhrases.size;
+            const percentage = (learned / total) * 100;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+            document.getElementById('progress-text').innerText = `學習進度：${learned} / ${total}`;
+        }
+
         function renderPhrase(index) {
             const data = phrasesDatabase[index];
             const contentCard = document.getElementById('content-card');
             
+            // 記錄已學習
+            learnedPhrases.add(index);
+            saveLocalData();
+            
+            // 更新收藏按鈕狀態
+            updateFavoriteBtnState(index);
+
             // 觸發重新載入的動畫
             contentCard.classList.remove('fade-in');
             void contentCard.offsetWidth; // trigger reflow
@@ -278,6 +363,248 @@
             document.getElementById('dialog-avatar2').innerText = data.dialog.role2.avatar;
             document.getElementById('dialog-text2').innerHTML = data.dialog.role2.text;
             document.getElementById('dialog-pinyin2').innerText = data.dialog.role2.pinyin;
+        }
+
+        function switchTab(tabName) {
+            const learnTab = document.getElementById('tab-learn');
+            const quizTab = document.getElementById('tab-quiz');
+            const viewLearn = document.getElementById('view-learn');
+            const viewQuiz = document.getElementById('view-quiz');
+
+            if (tabName === 'learn') {
+                learnTab.className = "tab-active flex-1 py-3 px-4 text-center border-b-4 hover:bg-gray-50 transition font-medium text-gray-500";
+                quizTab.className = "flex-1 py-3 px-4 text-center border-b-4 border-transparent hover:bg-gray-50 transition font-medium text-gray-500";
+                viewLearn.style.display = 'block';
+                viewQuiz.style.display = 'none';
+            } else {
+                quizTab.className = "tab-active flex-1 py-3 px-4 text-center border-b-4 hover:bg-gray-50 transition font-medium text-gray-500";
+                learnTab.className = "flex-1 py-3 px-4 text-center border-b-4 border-transparent hover:bg-gray-50 transition font-medium text-gray-500";
+                viewLearn.style.display = 'none';
+                viewQuiz.style.display = 'block';
+            }
+        }
+
+        function toggleFavorite(index) {
+            const pos = favoriteIndexes.indexOf(index);
+            if (pos > -1) {
+                favoriteIndexes.splice(pos, 1);
+            } else {
+                favoriteIndexes.push(index);
+            }
+            saveLocalData();
+            renderFavoritesList();
+            if (index === currentIndex) updateFavoriteBtnState(index);
+        }
+
+        function toggleCurrentFavorite(btnElement) {
+            btnElement.classList.add('pop-anim');
+            setTimeout(() => btnElement.classList.remove('pop-anim'), 300);
+            toggleFavorite(currentIndex);
+        }
+
+        function updateFavoriteBtnState(index) {
+            const favBtn = document.getElementById('fav-btn');
+            if (!favBtn) return;
+            if (favoriteIndexes.includes(index)) {
+                favBtn.innerHTML = '<i class="fas fa-heart"></i>';
+                favBtn.classList.remove('text-gray-400');
+                favBtn.classList.add('text-red-500');
+            } else {
+                favBtn.innerHTML = '<i class="far fa-heart"></i>';
+                favBtn.classList.remove('text-red-500');
+                favBtn.classList.add('text-gray-400');
+            }
+        }
+
+        function toggleFavorites() {
+            const sidebar = document.getElementById('favorites-sidebar');
+            const backdrop = document.getElementById('favorites-backdrop');
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.add('translate-x-full');
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        function renderFavoritesList() {
+            const list = document.getElementById('favorites-list');
+            const emptyState = document.getElementById('fav-empty-state');
+            
+            // 清空列表（保留空狀態提示）
+            Array.from(list.children).forEach(child => {
+                if (child.id !== 'fav-empty-state') child.remove();
+            });
+
+            if (favoriteIndexes.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            favoriteIndexes.forEach(index => {
+                const phrase = phrasesDatabase[index];
+                if(!phrase) return; // 防呆
+                
+                const item = document.createElement('div');
+                item.className = "bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex justify-between items-center hover:border-green-300 transition group cursor-pointer";
+                item.onclick = (e) => {
+                    // 如果點擊的不是愛心按鈕，就跳轉過去
+                    if (!e.target.closest('button')) {
+                        selectPhrase(index.toString());
+                        document.getElementById('phrase-select').value = index;
+                        switchTab('learn');
+                        toggleFavorites();
+                    }
+                };
+                item.innerHTML = `
+                    <div class="flex-1 min-w-0 pr-2">
+                        <h4 class="font-bold text-green-800 text-sm truncate">${phrase.title}</h4>
+                        <p class="text-xs text-gray-500 truncate">${phrase.meaning}</p>
+                    </div>
+                    <button onclick="toggleFavorite(${index})" class="text-red-500 hover:text-red-700 p-1 opacity-50 group-hover:opacity-100 transition shrink-0" title="移除收藏">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        let quizQuestions = [];
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        let currentQuizPhrase = null;
+
+        function startQuiz() {
+            if (phrasesDatabase.length < 4) {
+                alert("題庫數量不足，請先擴充題庫至少 4 題才能進行測驗喔！");
+                return;
+            }
+            
+            // 隨機選 5 題（或全部如果不足 5 題）
+            const numQuestions = Math.min(5, phrasesDatabase.length);
+            const shuffled = [...phrasesDatabase].sort(() => 0.5 - Math.random());
+            quizQuestions = shuffled.slice(0, numQuestions);
+            
+            currentQuizIndex = 0;
+            quizScore = 0;
+            
+            document.getElementById('quiz-setup').classList.add('hidden');
+            document.getElementById('quiz-result').classList.add('hidden');
+            document.getElementById('quiz-active').classList.remove('hidden');
+            
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            document.getElementById('quiz-progress-text').innerText = `題數：${currentQuizIndex + 1} / ${quizQuestions.length}`;
+            document.getElementById('quiz-score-text').innerText = `目前得分：${quizScore}`;
+            
+            currentQuizPhrase = quizQuestions[currentQuizIndex];
+            
+            // 隨機決定題型: 0 = 問意思, 1 = 聽發音選台語
+            const qType = Math.random() > 0.5 ? 0 : 1;
+            const questionTitle = document.getElementById('quiz-question-text');
+            const listenBtn = document.getElementById('quiz-listen-btn');
+            const qTypeHint = document.getElementById('quiz-question-type');
+            
+            if (qType === 0) {
+                qTypeHint.innerText = "請問以下這句台語的華語意思是？";
+                questionTitle.innerText = currentQuizPhrase.title;
+                questionTitle.classList.remove('hidden');
+                listenBtn.classList.remove('flex');
+                listenBtn.classList.add('hidden');
+            } else {
+                qTypeHint.innerText = "請點擊播放，選出你聽到的台語俗諺：";
+                questionTitle.classList.add('hidden');
+                listenBtn.classList.remove('hidden');
+                listenBtn.classList.add('flex');
+                // 可以自動播放，但避免瀏覽器阻擋，讓使用者自己按
+            }
+
+            // 產生 4 個選項
+            const optionsDiv = document.getElementById('quiz-options');
+            optionsDiv.innerHTML = '';
+            
+            // 取出另外 3 個錯誤選項
+            let wrongOptions = phrasesDatabase.filter(p => p.title !== currentQuizPhrase.title);
+            wrongOptions = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, 3);
+            
+            const allOptions = [currentQuizPhrase, ...wrongOptions].sort(() => 0.5 - Math.random());
+            
+            allOptions.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-4 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 text-left transition duration-200 flex items-center justify-between group";
+                
+                let optionText = qType === 0 ? opt.meaning : opt.title;
+                // 稍微截斷太長的意思
+                if(optionText.length > 25 && qType === 0) optionText = optionText.substring(0, 25) + '...';
+
+                btn.innerHTML = `
+                    <span class="font-medium text-gray-700 group-hover:text-green-800">${String.fromCharCode(65 + idx)}. ${optionText}</span>
+                    <i class="fas fa-circle text-gray-200 group-hover:text-green-500 text-sm"></i>
+                `;
+                
+                btn.onclick = () => checkQuizAnswer(opt.title === currentQuizPhrase.title, btn);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkQuizAnswer(isCorrect, btnElement) {
+            // 禁用所有按鈕
+            const optionsDiv = document.getElementById('quiz-options');
+            Array.from(optionsDiv.children).forEach(child => child.disabled = true);
+            
+            const icon = btnElement.querySelector('i');
+            if (isCorrect) {
+                btnElement.className = "p-4 border-2 border-green-500 bg-green-100 rounded-xl text-left font-bold text-green-800 flex items-center justify-between";
+                icon.className = "fas fa-check-circle text-green-600 text-xl";
+                quizScore += 20;
+            } else {
+                btnElement.className = "p-4 border-2 border-red-500 bg-red-50 rounded-xl text-left font-bold text-red-800 flex items-center justify-between";
+                icon.className = "fas fa-times-circle text-red-600 text-xl";
+                
+                // 找出正確的把它標綠
+                Array.from(optionsDiv.children).forEach(child => {
+                    const text = child.innerText;
+                    if (text.includes(currentQuizPhrase.title) || text.includes(currentQuizPhrase.meaning.substring(0,25))) {
+                        child.classList.remove('border-gray-200', 'hover:border-green-500');
+                        child.classList.add('border-green-500', 'bg-green-50');
+                    }
+                });
+            }
+            
+            document.getElementById('quiz-score-text').innerText = `目前得分：${quizScore}`;
+            
+            setTimeout(() => {
+                currentQuizIndex++;
+                if (currentQuizIndex < quizQuestions.length) {
+                    loadQuizQuestion();
+                } else {
+                    showQuizResult();
+                }
+            }, 1500);
+        }
+
+        function showQuizResult() {
+            document.getElementById('quiz-active').classList.add('hidden');
+            document.getElementById('quiz-result').classList.remove('hidden');
+            
+            const scoreSpan = document.getElementById('quiz-final-score').querySelector('span');
+            scoreSpan.innerText = quizScore;
+            if(quizScore === 100) {
+                scoreSpan.className = "font-bold text-green-600";
+                document.querySelector('#quiz-result i').className = "fas fa-crown text-6xl text-yellow-400 mb-4";
+            } else if (quizScore >= 60) {
+                scoreSpan.className = "font-bold text-blue-600";
+                document.querySelector('#quiz-result i').className = "fas fa-thumbs-up text-6xl text-blue-400 mb-4";
+            } else {
+                scoreSpan.className = "font-bold text-red-600";
+                document.querySelector('#quiz-result i').className = "fas fa-book text-6xl text-gray-400 mb-4";
+            }
         }
 
         function getRandomPhrase() {
