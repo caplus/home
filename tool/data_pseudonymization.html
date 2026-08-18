@@ -85,6 +85,13 @@
                 </label>
                 <input type="file" id="fileInput" accept=".csv, .xlsx, .xls">
                 <p class="text-sm text-gray-500 mt-2" id="fileNameDisplay">尚未選擇檔案。支援 CSV, XLSX 格式。</p>
+                
+                <!-- 新增：工作表選擇器 (預設為隱藏) -->
+                <div id="sheetSelectorContainer" class="hidden mt-4 flex flex-col items-center justify-center gap-2 w-full max-w-xs">
+                    <label for="sheetSelect" class="text-sm font-medium text-gray-700">選擇要處理的工作表：</label>
+                    <select id="sheetSelect" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white">
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -160,6 +167,7 @@
         let anonymizedData = [];
         let mappingTable = {}; // Structure: { columnName: { originalValue: anonymizedValue, ... } }
         let counters = {}; // Keep track of IDs for each column: { columnName: 1 }
+        let currentWorkbook = null; // 新增：儲存目前的 Excel workbook 物件
 
         // DOM Elements
         const fileInput = document.getElementById('fileInput');
@@ -172,6 +180,9 @@
         const downloadDataBtn = document.getElementById('downloadDataBtn');
         const downloadMapBtn = document.getElementById('downloadMapBtn');
         const resetBtn = document.getElementById('resetBtn');
+        // 新增：工作表選擇器的 DOM 元素
+        const sheetSelectorContainer = document.getElementById('sheetSelectorContainer');
+        const sheetSelect = document.getElementById('sheetSelect');
 
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -192,6 +203,7 @@
         });
 
         function processCSV(file) {
+            sheetSelectorContainer.classList.add('hidden'); // 處理 CSV 時隱藏工作表選擇器
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
@@ -220,26 +232,27 @@
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
+                    currentWorkbook = XLSX.read(data, {type: 'array'});
                     
-                    // Assume the first sheet is the one we want
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // Convert sheet to JSON array (similar to PapaParse output)
-                    const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-                    
-                    if (json && json.length > 0) {
-                        originalData = json;
-                        headers = Object.keys(originalData[0]);
-                        setupColumnSelection();
-                        renderPreview(originalData);
-                        step2Container.classList.remove('hidden');
-                        previewContainer.classList.remove('hidden');
-                        step3Container.classList.add('hidden');
+                    // 填入工作表下拉選單選項
+                    sheetSelect.innerHTML = '';
+                    currentWorkbook.SheetNames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        sheetSelect.appendChild(option);
+                    });
+
+                    // 若超過一個工作表，則顯示下拉選單
+                    if (currentWorkbook.SheetNames.length > 1) {
+                        sheetSelectorContainer.classList.remove('hidden');
                     } else {
-                        alert('Excel 檔案似乎沒有資料。');
+                        sheetSelectorContainer.classList.add('hidden');
                     }
+                    
+                    // 預設載入第一個工作表的資料
+                    loadSheetData(currentWorkbook.SheetNames[0]);
+                    
                 } catch (error) {
                     console.error("Error parsing Excel:", error);
                     alert("解析 Excel 檔案時發生錯誤。");
@@ -247,6 +260,41 @@
             };
             reader.readAsArrayBuffer(file);
         }
+
+        // 新增：處理特定工作表資料的函式
+        function loadSheetData(sheetName) {
+            if (!currentWorkbook) return;
+            const worksheet = currentWorkbook.Sheets[sheetName];
+            
+            // 轉換工作表為 JSON 陣列
+            const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            if (json && json.length > 0) {
+                originalData = json;
+                headers = Object.keys(originalData[0]);
+                setupColumnSelection();
+                renderPreview(originalData);
+                step2Container.classList.remove('hidden');
+                previewContainer.classList.remove('hidden');
+                step3Container.classList.add('hidden');
+            } else {
+                alert(`工作表 "${sheetName}" 似乎沒有資料。`);
+                // 清空預覽與選項
+                originalData = [];
+                headers = [];
+                setupColumnSelection();
+                renderPreview([]);
+                step2Container.classList.add('hidden');
+                previewContainer.classList.add('hidden');
+            }
+        }
+
+        // 新增：監聽工作表切換事件
+        sheetSelect.addEventListener('change', function(e) {
+            loadSheetData(e.target.value);
+            // 若使用者切換工作表，重置完成狀態與按鈕
+            step3Container.classList.add('hidden');
+        });
 
         function setupColumnSelection() {
             columnCheckboxesContainer.innerHTML = '';
@@ -434,9 +482,12 @@
             selectedColumns = [];
             anonymizedData = [];
             mappingTable = {};
+            currentWorkbook = null;
             
             fileInput.value = '';
             fileNameDisplay.textContent = '尚未選擇檔案。支援 CSV, XLSX 格式。';
+            sheetSelectorContainer.classList.add('hidden');
+            sheetSelect.innerHTML = '';
             
             step1Container.classList.remove('hidden');
             step2Container.classList.add('hidden');
